@@ -77,9 +77,9 @@ class Jogo:
 
     return False
 
-  # def estima_sucesso_horizontal(self) -> list:
+  # def estima_sucesso_vertical(self) -> list:
     
-  #   matriz_sucesso_horizontal = []
+  #   matriz_sucesso_vertical = []
   #   contador = 4
   #   for coluna in range(7):
   #     for linha in range(5, -1, -1):
@@ -92,14 +92,14 @@ class Jogo:
   #                 while linha_atual != 6 and self.grid[linha_atual][coluna] == self.cor_O:
   #                   contador -= 1
   #                   linha_atual += 1
-  #                 matriz_sucesso_horizontal.append(contador)
+  #                 matriz_sucesso_vertical.append(contador)
   #             else:
                  
 
-  #   return matriz_sucesso_horizontal
+  #   return matriz_sucesso_vertical
   
-def estima_sucesso_vertical(self) -> list:
-  matriz_sucesso_vertical = []
+def estima_sucesso_horizontal(self) -> list:
+  matriz_sucesso_horizontal = []
   contador = 4
   for linha in range(6, -1, -1):
      for coluna in range(7):
@@ -112,11 +112,11 @@ def estima_sucesso_vertical(self) -> list:
               while coluna_atual != 0 and self.grid[linha][coluna_atual] == self.cor_O:
                  contador -= 1
                  coluna_atual -= 1
-              matriz_sucesso_vertical.append(contador)
+              matriz_sucesso_horizontal.append(contador)
               continue
            else:
               if linha < 5:
-                 matriz_sucesso_vertical.append(4)
+                 matriz_sucesso_horizontal.append(4)
               else:
                  continue
 
