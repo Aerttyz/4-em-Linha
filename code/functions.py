@@ -77,3 +77,26 @@ class Jogo:
 
     return False
 
+  def estima_sucesso(self) -> list:
+    
+    matriz_sucesso_horizontal = []
+    contador = 4
+    for coluna in range(7):
+      for linha in range(5, -1, -1):
+           if self.grid[linha][coluna] != '':
+              continue
+           else:
+              if self.grid[linha+1][coluna] == self.cor_O:
+                  linha_atual = linha
+                  linha_atual += 1
+                  while linha_atual != 6 and self.grid[linha_atual][coluna] == self.cor_O:
+                    contador -= 1
+                    linha_atual += 1
+                  matriz_sucesso_horizontal.append(contador)
+
+    return matriz_sucesso_horizontal
+              
+              
+              
+        
+
