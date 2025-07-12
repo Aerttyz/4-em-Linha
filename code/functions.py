@@ -8,32 +8,48 @@ class Jogo:
                 ['', '', '', '', '', '', ''],
                 ['', '', '', '', '', '', ''],
                 ['', '', '', '', '', '', '']]
-    self.cor_X = 'X'
-    self.cor_O = 'O'
+    self.cor_player = 'X'
+    self.cor_cpu = 'O'
 
-  def player(self, grid: list, cor: str) -> None:
+  def escolher_cor(self) -> None:
+    while True:
+        cor_escolhida = input("Escolha sua cor (X ou O): ").strip().upper()
+        if cor_escolhida in ['X', 'O']:
+            self.cor_player = cor_escolhida
+            self.cor_cpu = 'O' if cor_escolhida == 'X' else 'X'
+            print(f"Você escolheu: {self.cor_player}. A IA será: {self.cor_cpu}.")
+            break
+        else:
+            print("Escolha inválida. Digite X ou O.")
+
+  def player(self, cor: str) -> None:
       posicao = int(input())
       if posicao >= 0 and posicao <= 6:
-          linha = self.vefificar_tabuleiro(grid, posicao)
+          linha = self.vefificar_tabuleiro(posicao)
           if linha != -1:
-              grid[linha][posicao] = cor
+              self.grid[linha][posicao] = cor
           else:
               print('Jogada inválida')
       else:
           print('Jogada inválida')
 
   def player_IA(self) -> None:
-      pass
+      posicao = self.escolher_melhor_jogada()
+      if posicao >= 0 and posicao <= 6:
+          linha = self.vefificar_tabuleiro(posicao)
+          if linha != -1:
+              self.grid[linha][posicao] = self.cor_cpu
+          else:
+              print('Jogada inválida')
+      else:
+          print('Jogada inválida')
 
   def alternar_cor(self, cor: str) -> str:
-      if self.cor_X == cor:
-        return self.cor_O
-      else:
-        return self.cor_X
+      return self.cor_cpu if cor == self.cor_player else self.cor_player
 
-  def vefificar_tabuleiro(self, pos) -> int:
+  def vefificar_tabuleiro(self, posicao: int) -> int:
     for linha in reversed(range(len(self.grid))):
-      if self.grid[linha][pos] == '':
+      if self.grid[linha][posicao] == '':
         return linha
     return -1
 
@@ -42,83 +58,155 @@ class Jogo:
         print(y)
 
   def jogar(self) -> None:
-    cor = self.cor_X
-    while True:
-        cor = self.alternar_cor(cor)
-        print(f'Vez do jogador {cor}')
-        self.vefificar_tabuleiro()
-        self.player(self.grid, cor)
-        self.vefificar_tabuleiro()
 
-  def verificar_vitoria(self, grid: list, cor) -> bool:
+    while True:
+      self.exibir_tabuleiro()
+      print(f'Vez do jogador {self.cor_player}')
+      self.player(self.cor_player)
+      if self.verificar_vitoria(self.cor_player):
+        self.exibir_tabuleiro()
+        print(f'Jogador {self.cor_player} venceu!')
+        break
+
+      self.exibir_tabuleiro()
+      print(f'Vez do jogador {self.cor_cpu}')
+      self.player_IA()
+      if self.verificar_vitoria(self.cor_cpu):
+        self.exibir_tabuleiro()
+        print(f'A IA ({self.cor_cpu}) venceu!')
+        break
+
+
+  def verificar_vitoria(self, cor: str) -> bool:
     #horizontal 
     for linha in range(6):
       for coluna in range(4):
-        if all(grid[linha][coluna+i] == cor for i in range(4)):
+        if all(self.grid[linha][coluna+i] == cor for i in range(4)):
           return True
     
     #vertical
     for linha in range(3):
       for coluna in range(7):
-        if all(grid[linha+i][coluna] == cor for i in range(4)):
+        if all(self.grid[linha+i][coluna] == cor for i in range(4)):
           return True
 
     #diagonal pra cima
     for linha in range(3):
       for coluna in range(4):
-        if all(grid[linha+i][coluna+i] == cor for i in range(4)):
+        if all(self.grid[linha+i][coluna+i] == cor for i in range(4)):
           return True
 
     #diagonal pra baixo
     for linha in range(3, 6):
       for coluna in range(4):
-        if all(grid[linha-i][coluna+i] == cor for i in range(4)):
+        if all(self.grid[linha-i][coluna+i] == cor for i in range(4)):
           return True
 
     return False
 
-  # def estima_sucesso_vertical(self) -> list:
-    
-  #   matriz_sucesso_vertical = []
-  #   contador = 4
-  #   for coluna in range(7):
-  #     for linha in range(5, -1, -1):
-  #          if self.grid[linha][coluna] != '':
-  #             continue
-  #          else:
-  #             if self.grid[linha+1][coluna] == self.cor_O:
-  #                 linha_atual = linha
-  #                 linha_atual += 1
-  #                 while linha_atual != 6 and self.grid[linha_atual][coluna] == self.cor_O:
-  #                   contador -= 1
-  #                   linha_atual += 1
-  #                 matriz_sucesso_vertical.append(contador)
-  #             else:
-                 
+  def avaliar_vertical(self, coluna: int) -> int:
+    score_coluna = 0
+    for linha in range(3):
+      trecho = [self.grid[linha + i][coluna] for i in range(4)]
+      n_cpu = trecho.count(self.cor_cpu)
+      n_vazias = trecho.count('')
+      if n_cpu > 0 and n_cpu + n_vazias == 4:
+        score_coluna += n_cpu * 10
+      elif n_cpu + n_vazias < 4:
+        score_coluna -= 100
+    return score_coluna
 
-  #   return matriz_sucesso_vertical
+  def avaliar_horizontal(self, linha: int) -> int:
+    score_linha = 0
+    for coluna in range(4):
+      trecho = [self.grid[linha][coluna + i] for i in range(1, 4)]
+      trecho += [self.grid[linha][coluna - i] for i in range(1, 4)]
+      n_cpu = trecho.count(self.cor_cpu)
+      n_vazias = trecho.count('')
+      if n_cpu > 0 and n_cpu + n_vazias == 4:
+        score_linha += n_cpu * 10
+      elif n_cpu + n_vazias < 4:
+        score_linha -= 100
+    return score_linha
   
-def estima_sucesso_horizontal(self) -> list:
-  matriz_sucesso_horizontal = []
-  contador = 4
-  for linha in range(6, -1, -1):
-     for coluna in range(7):
-        if self.grid[linha][coluna] != '':
-           continue
-        else:
-           if self.grid[linha][coluna-1] == self.cor_0:
-              coluna_atual = coluna
-              coluna_atual -= 1
-              while coluna_atual != 0 and self.grid[linha][coluna_atual] == self.cor_O:
-                 contador -= 1
-                 coluna_atual -= 1
-              matriz_sucesso_horizontal.append(contador)
-              continue
-           else:
-              if linha < 5:
-                 matriz_sucesso_horizontal.append(4)
-              else:
-                 continue
+  def avaliar_diagonais(self) -> int:
+    score_diagonal = 0
+
+    for linha in range(3):
+      for coluna in range(4):
+        trecho = [self.grid[linha + i][coluna + i] for i in range(4)]
+        n_cpu = trecho.count(self.cor_cpu)
+        n_vazias = trecho.count('')
+        if n_cpu > 0 and n_cpu + n_vazias == 4:
+            score_diagonal += n_cpu * 10
+        elif n_cpu + n_vazias < 4:
+            score_diagonal -= 100
+
+    for linha in range(3):
+      for coluna in range(3, 7):
+        trecho = [self.grid[linha + i][coluna - i] for i in range(4)]
+        n_cpu = trecho.count(self.cor_cpu)
+        n_vazias = trecho.count('')
+        if n_cpu > 0 and n_cpu + n_vazias == 4:
+            score_diagonal += n_cpu * 10
+        elif n_cpu + n_vazias < 4:
+            score_diagonal -= 100
+
+    for linha in range(3, 6):
+      for coluna in range(4):
+        trecho = [self.grid[linha - i][coluna + i] for i in range(4)]
+        n_cpu = trecho.count(self.cor_cpu)
+        n_vazias = trecho.count('')
+        if n_cpu > 0 and n_cpu + n_vazias == 4:
+            score_diagonal += n_cpu * 10
+        elif n_cpu + n_vazias < 4:
+            score_diagonal -= 100
+
+    for linha in range(3, 6):
+      for coluna in range(3, 7):
+        trecho = [self.grid[linha - i][coluna - i] for i in range(4)]
+        n_cpu = trecho.count(self.cor_cpu)
+        n_vazias = trecho.count('')
+        if n_cpu > 0 and n_cpu + n_vazias == 4:
+            score_diagonal += n_cpu * 10
+        elif n_cpu + n_vazias < 4:
+            score_diagonal -= 100
+
+    return score_diagonal
+
+  
+  def escolher_melhor_jogada(self) -> int:
+    melhor_score = float('-inf')
+    melhor_coluna = None
+
+    for coluna in range(7):
+        linha = self.vefificar_tabuleiro(coluna)
+        if linha == -1:
+            continue
+
+        self.grid[linha][coluna] = self.cor_cpu
+
+        score_vertical = self.avaliar_vertical(coluna)
+        score_horizontal = self.avaliar_horizontal(linha)
+        score_diagonais = self.avaliar_diagonais()
+
+        score_total = score_vertical + score_horizontal + score_diagonais
+
+        self.grid[linha][coluna] = ''
+
+        if score_total > melhor_score:
+            melhor_score = score_total
+            melhor_coluna = coluna
+
+    return melhor_coluna
+
+
+      
+
+
+
+
+
 
    
               
