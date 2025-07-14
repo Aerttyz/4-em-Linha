@@ -1,9 +1,10 @@
 # Módulos nativos
-import os
+from pathlib import Path
 import sys
 
 # Paths (insira o seu logo abaixo)
-sys.path.append('/home/fulano/Documentos/4-em-Linha/code')
+path = Path(__file__).resolve().parent / 'code'
+sys.path.append(str(path))
 # Módulos externos
 from functions import Jogo
 

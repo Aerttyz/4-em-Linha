@@ -1,3 +1,4 @@
+from typing import Optional, Tuple
 class Jogo:
   
   def __init__(self):
@@ -20,7 +21,7 @@ class Jogo:
     """
 
     while True:
-        cor_escolhida = input("Escolha sua cor (X ou O): ").strip().upper()
+        cor_escolhida = input("Escolha sua cor (X = 🟡 ou O = 🔴): ").strip().upper()
         if cor_escolhida in ['X', 'O']:
             self.cor_player = cor_escolhida
             self.cor_cpu = 'O' if cor_escolhida == 'X' else 'X'
@@ -38,11 +39,11 @@ class Jogo:
       Caso não pertença ou caso a coluna já esteja preenchida até o topo, o player é informado que a jogada é inválida.
       """
       jogada_efetuada = False
-      while jogada_efetuada:
+      while not jogada_efetuada:
         posicao = int(input("Player, em qual coluna você deseja efetuar a jogada? (Valores possíveis: 1 ~ 7): "))
         posicao -= 1
         if posicao >= 0 and posicao <= 6:
-            linha = self.vefificar_tabuleiro(posicao)
+            linha = self.verificar_tabuleiro(posicao)
             if linha != -1:
                 self.grid[linha][posicao] = cor
                 jogada_efetuada = True
@@ -65,11 +66,14 @@ class Jogo:
       para que a CPU não efetue uma jogada inválida. Enquanto a jogada não for válida,
       a CPU retornará para a etapa de seleção da melhor jogada.
       """
+      
+      profundidade = 4  
+      _, posicao = self.minimax_alpha_beta(profundidade, True, float('-inf'), float('inf'))
+
       jogada_efetuada = False
-      while jogada_efetuada:
-        posicao = self.escolher_melhor_jogada()
+      while not jogada_efetuada:
         if posicao >= 0 and posicao <= 6:
-            linha = self.vefificar_tabuleiro(posicao)
+            linha = self.verificar_tabuleiro(posicao)
             if linha != -1:
                 self.grid[linha][posicao] = self.cor_cpu
                 jogada_efetuada = True
@@ -79,7 +83,7 @@ class Jogo:
         else:
             print('Jogada inválida')
 
-  def vefificar_tabuleiro(self, posicao: int) -> int:
+  def verificar_tabuleiro(self, posicao: int) -> int:
     """
     Retorna o índice da linha associada ao índice
     da coluna cuja célula está vazia.
@@ -100,8 +104,16 @@ class Jogo:
      Imprime a disposição do grid por meio da iteração
      pelos valores (espaços) do tabuleiro.
      """
-     for x, y in enumerate(self.grid):
-        print(y)
+     print(" 1  2  3  4  5  6  7")
+     for linha in self.grid:
+        for celula in linha:
+            if celula == 'X':
+                print("🟡", end=' ')
+            elif celula == 'O':
+                print("🔴", end=' ')
+            else:
+                print("⚪", end=' ')
+        print()
 
   def jogar(self) -> None:
     """
@@ -126,7 +138,6 @@ class Jogo:
         self.exibir_tabuleiro()
         print(f'A IA ({self.cor_cpu}) venceu!')
         break
-
 
   def verificar_vitoria(self, cor: str) -> bool:
     """
@@ -277,8 +288,7 @@ class Jogo:
 
     score_linha = 0
     for coluna in range(4):
-      trecho = [self.grid[linha][coluna + i] for i in range(1, 4)]
-      trecho += [self.grid[linha][coluna - i] for i in range(1, 4)]
+      trecho = [self.grid[linha][coluna + i] for i in range(4)]
       n_cpu = trecho.count(self.cor_cpu)
       n_vazias = trecho.count('')
       if n_cpu > 0 and n_cpu + n_vazias == 4:
@@ -358,45 +368,94 @@ class Jogo:
 
     return score_diagonal
 
-  
-  def escolher_melhor_jogada(self) -> int:
+  def avaliar_tabuleiro(self) -> int:
     """
-    Modulariza a função que contém a heurística que avalia a maximização da jogada da CPU
-    com base nas estimativas de pontuação em todas as direções para cada coluna e a respectiva
-    célula que pode ser preenchida.
-
-    Nesse sentido, a coluna com maior pontuação estimada será a coluna na qual a CPU irá preencher
-    a célula com a cor que lhe foi atribuída.
+    Avalia o tabuleiro e retorna a pontuação total com base nas heurísticas de avaliação
+    vertical, horizontal e diagonal.
 
     Retorno:
-      int: corresponde ao índice da coluna
+      int: pontuação total do tabuleiro.
     """
+    score_total = 0
+    for linha in range(6):
+        for coluna in range(7):
+            if self.grid[linha][coluna] == self.cor_cpu:
+                score_total += self.avaliar_vertical(coluna)
+                score_total += self.avaliar_horizontal(linha)
+                score_total += self.avaliar_diagonais(linha, coluna)
+            elif self.grid[linha][coluna] == self.cor_player:
+                score_total -= (self.avaliar_vertical(coluna) +
+                                self.avaliar_horizontal(linha) +
+                                self.avaliar_diagonais(linha, coluna))
+    return score_total
+
+  def minimax_alpha_beta(self, profundidade: int, max: bool, alfa: float, beta: float) -> Tuple[int, Optional[int]]:
+    """
+    Implementa o algoritmo Minimax com poda Alpha-Beta para determinar a melhor jogada da CPU.
     
+    Retorno:
+      Tuple[int, Optional[int]]: Retorna a pontuação da melhor jogada e o índice da coluna escolhida.
+    """
+    if self.verificar_vitoria(self.cor_cpu):
+        return 1000, None
+    elif self.verificar_vitoria(self.cor_player):
+        return -1000, None
+    elif profundidade == 0:
+        return self.avaliar_tabuleiro(), None
+    
+    if max:
+        return self.maximizar(profundidade, alfa, beta)
+    else:
+        return self.minimizar(profundidade, alfa, beta)
+    
+  def maximizar(self, profundidade: int, alfa: float, beta: float) -> Tuple[int, Optional[int]]:
+    """
+    Maximiza a pontuação da CPU, escolhendo a melhor coluna para jogar.
+    Retorno:
+      Tuple[int, Optional[int]]: Retorna a pontuação máxima e o índice da coluna escolhida.
+    """
+
     melhor_score = float('-inf')
     melhor_coluna = None
 
     for coluna in range(7):
-        linha = self.vefificar_tabuleiro(coluna)
+        linha = self.verificar_tabuleiro(coluna)
         if linha == -1:
             continue
 
         self.grid[linha][coluna] = self.cor_cpu
-
-        score_vertical = self.avaliar_vertical(coluna)
-        score_horizontal = self.avaliar_horizontal(linha)
-        score_diagonais = self.avaliar_diagonais(linha, coluna)
-
-        score_total = score_vertical + score_horizontal + score_diagonais
-
+        score, _ = self.minimax_alpha_beta(profundidade - 1, False, alfa, beta)
         self.grid[linha][coluna] = ''
 
-        if score_total > melhor_score:
-            melhor_score = score_total
+        if score > melhor_score:
+            melhor_score = score
             melhor_coluna = coluna
+        alfa = max(alfa, score)
+        if beta <= alfa:
+            break
 
-    return melhor_coluna
+    return melhor_score, melhor_coluna
+  
+  def minimizar(self, profundidade: int, alfa: float, beta: float) -> Tuple[int, Optional[int]]:
+    menor_score = float('inf')
+    melhor_coluna = None
 
+    for coluna in range(7):
+        linha = self.verificar_tabuleiro(coluna)
+        if linha == -1:
+            continue
 
+        self.grid[linha][coluna] = self.cor_player
+        score, _ = self.minimax_alpha_beta(profundidade - 1, True, alfa, beta)
+        self.grid[linha][coluna] = ''
+
+        if score < menor_score:
+            menor_score = score
+            melhor_coluna = coluna
+        beta = min(beta, score)
+        if beta <= alfa:
+            break
+    return menor_score, melhor_coluna
       
 
 
