@@ -384,7 +384,7 @@ class Jogo:
 
         score_vertical = self.avaliar_vertical(coluna)
         score_horizontal = self.avaliar_horizontal(linha)
-        score_diagonais = self.avaliar_diagonais()
+        score_diagonais = self.avaliar_diagonais(linha, coluna)
 
         score_total = score_vertical + score_horizontal + score_diagonais
 
